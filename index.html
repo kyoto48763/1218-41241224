@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>待辦事項紀錄</title>
+    <style>
+        /* 基本樣式 */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        /* 待辦事項表單樣式 */
+        #todo-form {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        #todo-input {
+            width: 300px;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        #add-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin-left: 10px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            background-color: #28a745;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        #add-button:hover {
+            background-color: #218838;
+        }
+
+        /* 錯誤與成功訊息樣式 */
+        #message {
+            max-width: 800px;
+            margin: 10px auto;
+            padding: 10px;
+            border-radius: 4px;
+            display: none; /* 隱藏訊息 */
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        /* 待辦事項列表區域樣式 */
+        #todo-section {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        #todo-section h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px;
+            text-align: center;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        .completed {
+            color: green;
+            font-weight: bold;
+        }
+        .not-completed {
+            color: red;
+            font-weight: bold;
+        }
+        .actions button {
+            margin: 0 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 14px;
+            border: none;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        .actions button.edit {
+            background-color: #ffc107;
+            color: white;
+        }
+        .actions button.edit:hover {
+            background-color: #e0a800;
+        }
+        .actions button.delete {
+            background-color: #dc3545;
+            color: white;
+        }
+        .actions button.delete:hover {
+            background-color: #c82333;
+        }
+
+        /* 模態視窗樣式 */
+        .modal {
+            display: none; /* 隱藏模態視窗 */
+            position: fixed; /* 固定位置 */
+            z-index: 1000; /* 確保模態視窗在頂層 */
+            left: 0;
+            top: 0;
+            width: 100%; /* 全屏寬度 */
+            height: 100%; /* 全屏高度 */
+            overflow: auto; /* 如內容過多則可滾動 */
+            background-color: rgba(0,0,0,0.5); /* 半透明背景 */
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto; /* 居中顯示 */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 400px; /* 模態視窗寬度 */
+            border-radius: 5px;
+            position: relative;
+        }
+        .close {
+            color: #aaa;
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+        }
+        .modal-header {
+            margin-bottom: 10px;
+        }
+        .modal-header h2 {
+            margin: 0;
+        }
+        .modal-body {
+            margin-bottom: 20px;
+        }
+        .modal-body input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .modal-body label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 16px;
+        }
+        .modal-footer {
+            text-align: right;
+        }
+        .modal-footer button {
+            padding: 8px 16px;
+            font-size: 16px;
+            margin-left: 10px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+        }
+        .modal-footer .save-button {
+            background-color: #28a745;
+            color: white;
+        }
+        .modal-footer .save-button:hover {
+            background-color: #218838;
+        }
+        .modal-footer .cancel-button {
+            background-color: #6c757d;
+            color: white;
+        }
+        .modal-footer .cancel-button:hover {
+            background-color: #5a6268;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>待辦事項紀錄</h1>
+
+    <div id="todo-form">
+        <input type="text" id="todo-input" placeholder="新增待辦事項">
+        <button id="add-button">新增</button>
+    </div>
+
+    <!-- 錯誤與成功訊息區域 -->
+    <div id="message"></div>
+
+    <!-- 待辦事項列表區域 -->
+    <div id="todo-section">
+        <h2>我的待辦事項</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>待辦事項</th>
+                    <th>是否完成</th>
+                    <th>功能</th>
+                </tr>
+            </thead>
+            <tbody id="todo-list">
+                <!-- 待辦事項將顯示在這裡 -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 編輯待辦事項模態視窗 -->
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="edit-close">&times;</span>
+            <div class="modal-header">
+                <h2>編輯待辦事項</h2>
+            </div>
+            <div class="modal-body">
+                <label for="edit-task-input">待辦事項</label>
+                <input type="text" id="edit-task-input" placeholder="輸入待辦事項">
+                <label for="edit-completed-input">
+                    <input type="checkbox" id="edit-completed-input"> 已完成
+                </label>
+            </div>
+            <div class="modal-footer">
+                <button class="save-button" id="save-edit-button">保存</button>
+                <button class="cancel-button" id="cancel-edit-button">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 設置您的API基礎URL
+        const apiBaseUrl = 'https://nfutest.pythonanywhere.com';
+
+        // 設置固定的學生ID
+        const studentId = 'student123'; // 您可以根據需要修改此值
+
+        // 獲取DOM元素
+        const addButton = document.getElementById('add-button');
+        const todoInput = document.getElementById('todo-input');
+        const todoList = document.getElementById('todo-list');
+        const messageDiv = document.getElementById('message');
+
+        // 編輯模態視窗元素
+        const editModal = document.getElementById('edit-modal');
+        const editClose = document.getElementById('edit-close');
+        const saveEditButton = document.getElementById('save-edit-button');
+        const cancelEditButton = document.getElementById('cancel-edit-button');
+        const editTaskInput = document.getElementById('edit-task-input');
+        const editCompletedInput = document.getElementById('edit-completed-input');
+
+        let currentEditId = null; // 當前編輯的待辦事項ID
+
+        // 顯示訊息
+        function showMessage(message, type) {
+            messageDiv.textContent = message;
+            messageDiv.className = type; // 'error' 或 'success'
+            messageDiv.style.display = 'block';
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // 新增待辦事項
+        addButton.addEventListener('click', () => {
+            const task = todoInput.value.trim();
+            if (task === '') {
+                showMessage('請輸入待辦事項', 'error');
+                return;
+            }
+
+            fetch(`${apiBaseUrl}/todos`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    student_id: studentId,
+                    task: task
+                })
+            })
+            .then(response => {
+                if (response.status === 201) {
+                    return response.json();
+                } else {
+                    return response.json().then(err => {
+                        throw new Error(err.message || '新增待辦事項失敗');
+                    });
+                }
+            })
+            .then(data => {
+                todoInput.value = '';
+                fetchTodos().then(newIndex => {
+                    showMessage(`新增成功: 編號 #${newIndex}, 事項: "${data.task}", 狀態: ${data.completed ? '是' : '否'}`, 'success');
+                });
+            })
+            .catch(error => {
+                showMessage(`新增失敗: ${error.message}`, 'error');
+                console.error(error);
+            });
+        });
+
+        // 獲取待辦事項
+        function fetchTodos() {
+            return fetch(`${apiBaseUrl}/todos?student_id=${encodeURIComponent(studentId)}`)
+                .then(response => {
+                    if (response.status === 200) {
+                        return response.json();
+                    } else {
+                        return response.json().then(err => {
+                            throw new Error(err.message || '獲取待辦事項失敗');
+                        });
+                    }
+                })
+                .then(data => {
+                    renderTodos(data.todos);
+                    // 找出最新的待辦事項編號
+                    const newIndex = data.todos.length;
+                    return newIndex;
+                })
+                .catch(error => {
+                    showMessage(`獲取失敗: ${error.message}`, 'error');
+                    console.error(error);
+                });
+        }
+
+        // 渲染待辦事項列表
+        function renderTodos(todos) {
+            todoList.innerHTML = '';
+            let index = 1;
+
+            if (!Array.isArray(todos) || todos.length === 0) {
+                const emptyRow = document.createElement('tr');
+                const emptyCell = document.createElement('td');
+                emptyCell.colSpan = 4;
+                emptyCell.textContent = '目前沒有待辦事項。';
+                emptyCell.style.textAlign = 'center';
+                emptyCell.style.color = 'gray';
+                emptyRow.appendChild(emptyCell);
+                todoList.appendChild(emptyRow);
+                return;
+            }
+
+            todos.forEach(todo => {
+                const tr = document.createElement('tr');
+
+                // 編號
+                const tdIndex = document.createElement('td');
+                tdIndex.textContent = index++;
+                tr.appendChild(tdIndex);
+
+                // 待辦事項
+                const tdTask = document.createElement('td');
+                tdTask.textContent = todo.task;
+                tr.appendChild(tdTask);
+
+                // 是否完成
+                const tdCompleted = document.createElement('td');
+                tdCompleted.textContent = todo.completed ? '是' : '否';
+                tdCompleted.className = todo.completed ? 'completed' : 'not-completed';
+                tr.appendChild(tdCompleted);
+
+                // 功能
+                const tdActions = document.createElement('td');
+                tdActions.className = 'actions';
+
+                const editButton = document.createElement('button');
+                editButton.className = 'edit';
+                editButton.textContent = '編輯';
+                editButton.addEventListener('click', () => openEditModal(todo));
+
+                const deleteButton = document.createElement('button');
+                deleteButton.className = 'delete';
+                deleteButton.textContent = '刪除';
+                deleteButton.addEventListener('click', () => deleteTask(todo.id));
+
+                tdActions.appendChild(editButton);
+                tdActions.appendChild(deleteButton);
+
+                tr.appendChild(tdActions);
+
+                todoList.appendChild(tr);
+            });
+        }
+
+        // 打開編輯模態視窗
+        function openEditModal(todo) {
+            currentEditId = todo.id;
+            editTaskInput.value = todo.task;
+            editCompletedInput.checked = todo.completed;
+            editModal.style.display = 'block';
+        }
+
+        // 關閉編輯模態視窗
+        function closeEditModal() {
+            editModal.style.display = 'none';
+            currentEditId = null;
+            editTaskInput.value = '';
+            editCompletedInput.checked = false;
+        }
+
+        // 保存編輯
+        saveEditButton.addEventListener('click', () => {
+            const updatedTask = editTaskInput.value.trim();
+            const updatedCompleted = editCompletedInput.checked;
+
+            if (updatedTask === '') {
+                showMessage('待辦事項不能為空', 'error');
+                return;
+            }
+
+            fetch(`${apiBaseUrl}/todos/${currentEditId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    student_id: studentId,
+                    task: updatedTask,
+                    completed: updatedCompleted
+                })
+            })
+            .then(response => {
+                if (response.status === 200) {
+                    return response.json();
+                } else {
+                    return response.json().then(err => {
+                        throw new Error(err.message || '編輯待辦事項失敗');
+                    });
+                }
+            })
+            .then(data => {
+                closeEditModal();
+                fetchTodos().then(newIndex => {
+                    showMessage(`編輯成功: 編號 #${newIndex}, 事項: "${data.task}", 狀態: ${data.completed ? '是' : '否'}`, 'success');
+                });
+            })
+            .catch(error => {
+                showMessage(`編輯失敗: ${error.message}`, 'error');
+                console.error(error);
+            });
+        });
+
+        // 取消編輯
+        cancelEditButton.addEventListener('click', () => {
+            closeEditModal();
+        });
+
+        // 點擊模態視窗外部關閉模態視窗
+        window.addEventListener('click', (event) => {
+            if (event.target == editModal) {
+                closeEditModal();
+            }
+        });
+
+        // 關閉模態視窗按鈕
+        editClose.addEventListener('click', () => {
+            closeEditModal();
+        });
+
+        // 刪除待辦事項
+        function deleteTask(id) {
+            if (!confirm('確定要刪除此待辦事項嗎？')) return;
+
+            fetch(`${apiBaseUrl}/todos/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    student_id: studentId
+                })
+            })
+            .then(response => {
+                if (response.status === 200) {
+                    return response.json();
+                } else {
+                    return response.json().then(err => {
+                        throw new Error(err.message || '刪除待辦事項失敗');
+                    });
+                }
+            })
+            .then(data => {
+                showMessage(data.message || '刪除成功', 'success');
+                fetchTodos();
+            })
+            .catch(error => {
+                showMessage(`刪除失敗: ${error.message}`, 'error');
+                console.error(error);
+            });
+        }
+
+        // 初始載入時獲取待辦事項
+        window.onload = fetchTodos;
+    </script>
+</body>
+</html>
